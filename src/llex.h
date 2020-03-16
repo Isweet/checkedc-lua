@@ -61,12 +61,12 @@ typedef struct LexState {
   int lastline;  /* line of last token 'consumed' */
   Token t;  /* current token */
   Token lookahead;  /* look ahead token */
-  struct FuncState *fs;  /* current function (parser) */
+  _Ptr<struct FuncState> fs;  /* current function (parser) */
   struct lua_State *L;
-  ZIO *z;  /* input stream */
-  Mbuffer *buff;  /* buffer for tokens */
+  _Ptr<ZIO> z;  /* input stream */
+  _Ptr<Mbuffer> buff;  /* buffer for tokens */
   Table *h;  /* to avoid collection/reuse strings */
-  struct Dyndata *dyd;  /* dynamic structures used by the parser */
+  _Ptr<struct Dyndata> dyd;  /* dynamic structures used by the parser */
   TString *source;  /* current source name */
   TString *envn;  /* environment variable name */
 } LexState;

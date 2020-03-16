@@ -17,7 +17,7 @@
 
 /* ORDER OP */
 
-LUAI_DDEF const char *const luaP_opnames[NUM_OPCODES+1] = {
+LUAI_DDEF const _Ptr<const char> luaP_opnames _Checked[48] =  {
   "MOVE",
   "LOADK",
   "LOADKX",

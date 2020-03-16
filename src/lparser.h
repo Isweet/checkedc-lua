@@ -110,9 +110,9 @@ struct BlockCnt;  /* defined in lparser.c */
 /* state needed to generate code for a given function */
 typedef struct FuncState {
   Proto *f;  /* current function header */
-  struct FuncState *prev;  /* enclosing function */
-  struct LexState *ls;  /* lexical state */
-  struct BlockCnt *bl;  /* chain of current blocks */
+  _Ptr<struct FuncState> prev;  /* enclosing function */
+  _Ptr<struct LexState> ls;  /* lexical state */
+  _Ptr<struct BlockCnt> bl;  /* chain of current blocks */
   int pc;  /* next position to code (equivalent to 'ncode') */
   int lasttarget;   /* 'label' of last 'jump label' */
   int jpc;  /* list of pending jumps to 'pc' */

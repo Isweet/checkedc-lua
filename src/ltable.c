@@ -94,7 +94,7 @@ static const Node dummynode_ = {
 ** INT_MIN.
 */
 #if !defined(l_hashfloat)
-static int l_hashfloat (lua_Number n) {
+static int l_hashfloat(lua_Number n) {
   int i;
   lua_Integer ni;
   n = l_mathop(frexp)(n, &i) * -cast_num(INT_MIN);
@@ -114,7 +114,7 @@ static int l_hashfloat (lua_Number n) {
 ** returns the 'main' position of an element in a table (that is, the index
 ** of its hash value)
 */
-static Node *mainposition (const Table *t, const TValue *key) {
+static Node * mainposition(const Table *t : itype(_Ptr<const Table> ), const TValue *key : itype(_Ptr<const TValue> )) {
   switch (ttype(key)) {
     case LUA_TNUMINT:
       return hashint(t, ivalue(key));
@@ -141,7 +141,7 @@ static Node *mainposition (const Table *t, const TValue *key) {
 ** returns the index for 'key' if 'key' is an appropriate key to live in
 ** the array part of the table, 0 otherwise.
 */
-static unsigned int arrayindex (const TValue *key) {
+static unsigned int arrayindex(const TValue *key : itype(_Ptr<const TValue> )) {
   if (ttisinteger(key)) {
     lua_Integer k = ivalue(key);
     if (0 < k && (lua_Unsigned)k <= MAXASIZE)
@@ -156,7 +156,7 @@ static unsigned int arrayindex (const TValue *key) {
 ** elements in the array part, then elements in the hash part. The
 ** beginning of a traversal is signaled by 0.
 */
-static unsigned int findindex (lua_State *L, Table *t, StkId key) {
+static unsigned int findindex(lua_State *L, _Ptr<Table> t, StkId key : itype(_Ptr<TValue> )) {
   unsigned int i;
   if (ttisnil(key)) return 0;  /* first iteration */
   i = arrayindex(key);
@@ -183,7 +183,7 @@ static unsigned int findindex (lua_State *L, Table *t, StkId key) {
 }
 
 
-int luaH_next (lua_State *L, Table *t, StkId key) {
+int luaH_next(lua_State *L, _Ptr<Table> t, StkId key) {
   unsigned int i = findindex(L, t, key);  /* find original element */
   for (; i < t->sizearray; i++) {  /* try first array part */
     if (!ttisnil(&t->array[i])) {  /* a non-nil value? */
@@ -216,7 +216,7 @@ int luaH_next (lua_State *L, Table *t, StkId key) {
 ** integer keys in the table and leaves with the number of keys that
 ** will go to the array part; return the optimal size.
 */
-static unsigned int computesizes (unsigned int nums[], unsigned int *pna) {
+static unsigned int computesizes(unsigned int nums[], _Ptr<unsigned int> pna) {
   int i;
   unsigned int twotoi;  /* 2^i (candidate for optimal size) */
   unsigned int a = 0;  /* number of elements smaller than 2^i */
@@ -240,7 +240,7 @@ static unsigned int computesizes (unsigned int nums[], unsigned int *pna) {
 }
 
 
-static int countint (const TValue *key, unsigned int *nums) {
+static int countint(_Ptr<const TValue> key, unsigned int *nums) {
   unsigned int k = arrayindex(key);
   if (k != 0) {  /* is 'key' an appropriate array index? */
     nums[luaO_ceillog2(k)]++;  /* count as such */
@@ -256,7 +256,7 @@ static int countint (const TValue *key, unsigned int *nums) {
 ** number of keys that will go into corresponding slice and return
 ** total number of non-nil keys.
 */
-static unsigned int numusearray (const Table *t, unsigned int *nums) {
+static unsigned int numusearray(const Table *t : itype(_Ptr<const Table> ), unsigned int *nums) {
   int lg;
   unsigned int ttlg;  /* 2^lg */
   unsigned int ause = 0;  /* summation of 'nums' */
@@ -282,12 +282,12 @@ static unsigned int numusearray (const Table *t, unsigned int *nums) {
 }
 
 
-static int numusehash (const Table *t, unsigned int *nums, unsigned int *pna) {
+static int numusehash(const Table *t : itype(_Ptr<const Table> ), unsigned int *nums, _Ptr<unsigned int> pna) {
   int totaluse = 0;  /* total number of elements */
   int ause = 0;  /* elements added to 'nums' (can go to array part) */
   int i = sizenode(t);
   while (i--) {
-    Node *n = &t->node[i];
+    _Ptr<Node> n =  &t->node[i];
     if (!ttisnil(gval(n))) {
       ause += countint(gkey(n), nums);
       totaluse++;
@@ -298,7 +298,7 @@ static int numusehash (const Table *t, unsigned int *nums, unsigned int *pna) {
 }
 
 
-static void setarrayvector (lua_State *L, Table *t, unsigned int size) {
+static void setarrayvector(lua_State *L, Table *t : itype(_Ptr<Table> ), unsigned int size) {
   unsigned int i;
   luaM_reallocvector(L, t->array, t->sizearray, size, TValue);
   for (i=t->sizearray; i<size; i++)
@@ -307,7 +307,7 @@ static void setarrayvector (lua_State *L, Table *t, unsigned int size) {
 }
 
 
-static void setnodevector (lua_State *L, Table *t, unsigned int size) {
+static void setnodevector(lua_State *L, Table *t : itype(_Ptr<Table> ), unsigned int size) {
   if (size == 0) {  /* no elements to hash part? */
     t->node = cast(Node *, dummynode);  /* use common 'dummynode' */
     t->lsizenode = 0;
@@ -321,7 +321,7 @@ static void setnodevector (lua_State *L, Table *t, unsigned int size) {
     size = twoto(lsize);
     t->node = luaM_newvector(L, size, Node);
     for (i = 0; i < (int)size; i++) {
-      Node *n = gnode(t, i);
+      _Ptr<Node> n =  gnode(t, i);
       gnext(n) = 0;
       setnilvalue(wgkey(n));
       setnilvalue(gval(n));
@@ -333,22 +333,21 @@ static void setnodevector (lua_State *L, Table *t, unsigned int size) {
 
 
 typedef struct {
-  Table *t;
+  _Ptr<Table> t;
   unsigned int nhsize;
 } AuxsetnodeT;
 
 
-static void auxsetnode (lua_State *L, void *ud) {
-  AuxsetnodeT *asn = cast(AuxsetnodeT *, ud);
+static void auxsetnode(lua_State *L, void *ud) {
+  _Ptr<AuxsetnodeT> asn =  cast(AuxsetnodeT *, ud);
   setnodevector(L, asn->t, asn->nhsize);
 }
 
 
-void luaH_resize (lua_State *L, Table *t, unsigned int nasize,
-                                          unsigned int nhsize) {
+void luaH_resize(lua_State *L, Table *t : itype(_Ptr<Table> ), unsigned int nasize, unsigned int nhsize) {
   unsigned int i;
   int j;
-  AuxsetnodeT asn;
+  AuxsetnodeT asn = {};
   unsigned int oldasize = t->sizearray;
   int oldhsize = allocsizenode(t);
   Node *nold = t->node;  /* save old hash ... */
@@ -384,7 +383,7 @@ void luaH_resize (lua_State *L, Table *t, unsigned int nasize,
 }
 
 
-void luaH_resizearray (lua_State *L, Table *t, unsigned int nasize) {
+void luaH_resizearray(lua_State *L, _Ptr<Table> t, unsigned int nasize) {
   int nsize = allocsizenode(t);
   luaH_resize(L, t, nasize, nsize);
 }
@@ -392,7 +391,7 @@ void luaH_resizearray (lua_State *L, Table *t, unsigned int nasize) {
 /*
 ** nums[i] = number of keys 'k' where 2^(i - 1) < k <= 2^i
 */
-static void rehash (lua_State *L, Table *t, const TValue *ek) {
+static void rehash(lua_State *L, _Ptr<Table> t, const TValue *ek : itype(_Ptr<const TValue> )) {
   unsigned int asize;  /* optimal size for array part */
   unsigned int na;  /* number of keys in the array part */
   unsigned int nums[MAXABITS + 1];
@@ -418,9 +417,9 @@ static void rehash (lua_State *L, Table *t, const TValue *ek) {
 */
 
 
-Table *luaH_new (lua_State *L) {
+Table *luaH_new(lua_State *L) : itype(_Ptr<Table> )  {
   GCObject *o = luaC_newobj(L, LUA_TTABLE, sizeof(Table));
-  Table *t = gco2t(o);
+  _Ptr<Table> t =  gco2t(o);
   t->metatable = NULL;
   t->flags = cast_byte(~0);
   t->array = NULL;
@@ -430,7 +429,7 @@ Table *luaH_new (lua_State *L) {
 }
 
 
-void luaH_free (lua_State *L, Table *t) {
+void luaH_free(lua_State *L, Table *t) {
   if (!isdummy(t))
     luaM_freearray(L, t->node, cast(size_t, sizenode(t)));
   luaM_freearray(L, t->array, t->sizearray);
@@ -438,7 +437,7 @@ void luaH_free (lua_State *L, Table *t) {
 }
 
 
-static Node *getfreepos (Table *t) {
+static Node * getfreepos(Table *t : itype(_Ptr<Table> )) {
   if (!isdummy(t)) {
     while (t->lastfree > t->node) {
       t->lastfree--;
@@ -458,7 +457,7 @@ static Node *getfreepos (Table *t) {
 ** put new key in its main position; otherwise (colliding node is in its main
 ** position), new key goes to an empty position.
 */
-TValue *luaH_newkey (lua_State *L, Table *t, const TValue *key) {
+TValue * luaH_newkey(lua_State *L, _Ptr<Table> t, const TValue *key) {
   Node *mp;
   TValue aux;
   if (ttisnil(key)) luaG_runerror(L, "table index is nil");
@@ -513,7 +512,7 @@ TValue *luaH_newkey (lua_State *L, Table *t, const TValue *key) {
 /*
 ** search function for integers
 */
-const TValue *luaH_getint (Table *t, lua_Integer key) {
+const TValue *luaH_getint(Table *t : itype(_Ptr<Table> ), lua_Integer key) : itype(_Ptr<const TValue> )  {
   /* (1 <= key && key <= t->sizearray) */
   if (l_castS2U(key) - 1 < t->sizearray)
     return &t->array[key - 1];
@@ -536,11 +535,11 @@ const TValue *luaH_getint (Table *t, lua_Integer key) {
 /*
 ** search function for short strings
 */
-const TValue *luaH_getshortstr (Table *t, TString *key) {
+const TValue *luaH_getshortstr(Table *t : itype(_Ptr<Table> ), TString *key : itype(_Ptr<TString> )) : itype(_Ptr<const TValue> )  {
   Node *n = hashstr(t, key);
   lua_assert(key->tt == LUA_TSHRSTR);
   for (;;) {  /* check whether 'key' is somewhere in the chain */
-    const TValue *k = gkey(n);
+    _Ptr<const TValue> k =  gkey(n);
     if (ttisshrstring(k) && eqshrstr(tsvalue(k), key))
       return gval(n);  /* that's it */
     else {
@@ -557,7 +556,7 @@ const TValue *luaH_getshortstr (Table *t, TString *key) {
 ** "Generic" get version. (Not that generic: not valid for integers,
 ** which may be in array part, nor for floats with integral values.)
 */
-static const TValue *getgeneric (Table *t, const TValue *key) {
+static const TValue *getgeneric(_Ptr<Table> t, _Ptr<const TValue> key) : itype(_Ptr<const TValue> )  {
   Node *n = mainposition(t, key);
   for (;;) {  /* check whether 'key' is somewhere in the chain */
     if (luaV_rawequalobj(gkey(n), key))
@@ -572,7 +571,7 @@ static const TValue *getgeneric (Table *t, const TValue *key) {
 }
 
 
-const TValue *luaH_getstr (Table *t, TString *key) {
+const TValue *luaH_getstr(_Ptr<Table> t, TString *key) : itype(_Ptr<const TValue> )  {
   if (key->tt == LUA_TSHRSTR)
     return luaH_getshortstr(t, key);
   else {  /* for long strings, use generic case */
@@ -586,7 +585,7 @@ const TValue *luaH_getstr (Table *t, TString *key) {
 /*
 ** main search function
 */
-const TValue *luaH_get (Table *t, const TValue *key) {
+const TValue *luaH_get(_Ptr<Table> t, const TValue *key : itype(_Ptr<const TValue> )) : itype(_Ptr<const TValue> )  {
   switch (ttype(key)) {
     case LUA_TSHRSTR: return luaH_getshortstr(t, tsvalue(key));
     case LUA_TNUMINT: return luaH_getint(t, ivalue(key));
@@ -607,16 +606,16 @@ const TValue *luaH_get (Table *t, const TValue *key) {
 ** beware: when using this function you probably need to check a GC
 ** barrier and invalidate the TM cache.
 */
-TValue *luaH_set (lua_State *L, Table *t, const TValue *key) {
+TValue * luaH_set(lua_State *L, Table *t : itype(_Ptr<Table> ), const TValue *key : itype(_Ptr<const TValue> )) {
   const TValue *p = luaH_get(t, key);
   if (p != luaO_nilobject)
     return cast(TValue *, p);
-  else return luaH_newkey(L, t, key);
+  else return luaH_newkey(L, t, ((const TValue *)key));
 }
 
 
-void luaH_setint (lua_State *L, Table *t, lua_Integer key, TValue *value) {
-  const TValue *p = luaH_getint(t, key);
+void luaH_setint(lua_State *L, Table *t : itype(_Ptr<Table> ), lua_Integer key, TValue *value : itype(_Ptr<TValue> )) {
+  _Ptr<const TValue> p =  luaH_getint(t, key);
   TValue *cell;
   if (p != luaO_nilobject)
     cell = cast(TValue *, p);
@@ -629,7 +628,7 @@ void luaH_setint (lua_State *L, Table *t, lua_Integer key, TValue *value) {
 }
 
 
-static lua_Unsigned unbound_search (Table *t, lua_Unsigned j) {
+static lua_Unsigned unbound_search(_Ptr<Table> t, lua_Unsigned j) {
   lua_Unsigned i = j;  /* i is zero or a present index */
   j++;
   /* find 'i' and 'j' such that i is present and j is not */
@@ -657,7 +656,7 @@ static lua_Unsigned unbound_search (Table *t, lua_Unsigned j) {
 ** Try to find a boundary in table 't'. A 'boundary' is an integer index
 ** such that t[i] is non-nil and t[i+1] is nil (and 0 if t[1] is nil).
 */
-lua_Unsigned luaH_getn (Table *t) {
+lua_Unsigned luaH_getn(_Ptr<Table> t) {
   unsigned int j = t->sizearray;
   if (j > 0 && ttisnil(&t->array[j - 1])) {
     /* there is a boundary in the array part: (binary) search for it */

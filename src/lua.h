@@ -136,7 +136,7 @@ typedef void * (*lua_Alloc) (void *ud, void *ptr, size_t osize, size_t nsize);
 /*
 ** RCS ident string
 */
-extern const char lua_ident[];
+extern _Ptr<const char> lua_ident;
 
 
 /*

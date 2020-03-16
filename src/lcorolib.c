@@ -18,14 +18,14 @@
 #include "lualib.h"
 
 
-static lua_State *getco (lua_State *L) {
-  lua_State *co = lua_tothread(L, 1);
+static lua_State *getco(lua_State *L) : itype(_Ptr<lua_State> )  {
+  _Ptr<lua_State> co =  lua_tothread(L, 1);
   luaL_argcheck(L, co, 1, "thread expected");
   return co;
 }
 
 
-static int auxresume (lua_State *L, lua_State *co, int narg) {
+static int auxresume(lua_State *L, lua_State *co, int narg) {
   int status;
   if (!lua_checkstack(co, narg)) {
     lua_pushliteral(L, "too many arguments to resume");
@@ -54,10 +54,10 @@ static int auxresume (lua_State *L, lua_State *co, int narg) {
 }
 
 
-static int luaB_coresume (lua_State *L) {
-  lua_State *co = getco(L);
+static int luaB_coresume(lua_State *L) {
+  _Ptr<lua_State> co =  getco(L);
   int r;
-  r = auxresume(L, co, lua_gettop(L) - 1);
+  r = auxresume(L, ((lua_State *)co), lua_gettop(L) - 1);
   if (r < 0) {
     lua_pushboolean(L, 0);
     lua_insert(L, -2);
@@ -71,9 +71,9 @@ static int luaB_coresume (lua_State *L) {
 }
 
 
-static int luaB_auxwrap (lua_State *L) {
-  lua_State *co = lua_tothread(L, lua_upvalueindex(1));
-  int r = auxresume(L, co, lua_gettop(L));
+static int luaB_auxwrap(lua_State *L) {
+  _Ptr<lua_State> co =  lua_tothread(L, lua_upvalueindex(1));
+  int r = auxresume(L, ((lua_State *)co), lua_gettop(L));
   if (r < 0) {
     if (lua_type(L, -1) == LUA_TSTRING) {  /* error object is a string? */
       luaL_where(L, 1);  /* add extra info */
@@ -86,7 +86,7 @@ static int luaB_auxwrap (lua_State *L) {
 }
 
 
-static int luaB_cocreate (lua_State *L) {
+static int luaB_cocreate(lua_State *L) {
   lua_State *NL;
   luaL_checktype(L, 1, LUA_TFUNCTION);
   NL = lua_newthread(L);
@@ -96,20 +96,20 @@ static int luaB_cocreate (lua_State *L) {
 }
 
 
-static int luaB_cowrap (lua_State *L) {
+static int luaB_cowrap(lua_State *L) {
   luaB_cocreate(L);
   lua_pushcclosure(L, luaB_auxwrap, 1);
   return 1;
 }
 
 
-static int luaB_yield (lua_State *L) {
+static int luaB_yield(_Ptr<lua_State> L) {
   return lua_yield(L, lua_gettop(L));
 }
 
 
-static int luaB_costatus (lua_State *L) {
-  lua_State *co = getco(L);
+static int luaB_costatus(lua_State *L) {
+  _Ptr<lua_State> co =  getco(L);
   if (L == co) lua_pushliteral(L, "running");
   else {
     switch (lua_status(co)) {
@@ -135,13 +135,13 @@ static int luaB_costatus (lua_State *L) {
 }
 
 
-static int luaB_yieldable (lua_State *L) {
+static int luaB_yieldable(_Ptr<lua_State> L) {
   lua_pushboolean(L, lua_isyieldable(L));
   return 1;
 }
 
 
-static int luaB_corunning (lua_State *L) {
+static int luaB_corunning(lua_State *L) {
   int ismain = lua_pushthread(L);
   lua_pushboolean(L, ismain);
   return 2;

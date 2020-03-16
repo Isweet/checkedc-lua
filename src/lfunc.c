@@ -22,17 +22,17 @@
 
 
 
-CClosure *luaF_newCclosure (lua_State *L, int n) {
+CClosure *luaF_newCclosure(lua_State *L, int n) : itype(_Ptr<CClosure> )  {
   GCObject *o = luaC_newobj(L, LUA_TCCL, sizeCclosure(n));
-  CClosure *c = gco2ccl(o);
+  _Ptr<CClosure> c =  gco2ccl(o);
   c->nupvalues = cast_byte(n);
   return c;
 }
 
 
-LClosure *luaF_newLclosure (lua_State *L, int n) {
+LClosure *luaF_newLclosure(lua_State *L, int n) : itype(_Ptr<LClosure> )  {
   GCObject *o = luaC_newobj(L, LUA_TLCL, sizeLclosure(n));
-  LClosure *c = gco2lcl(o);
+  _Ptr<LClosure> c =  gco2lcl(o);
   c->p = NULL;
   c->nupvalues = cast_byte(n);
   while (n--) c->upvals[n] = NULL;
@@ -42,7 +42,7 @@ LClosure *luaF_newLclosure (lua_State *L, int n) {
 /*
 ** fill a closure with new closed upvalues
 */
-void luaF_initupvals (lua_State *L, LClosure *cl) {
+void luaF_initupvals(lua_State *L, LClosure *cl : itype(_Ptr<LClosure> )) {
   int i;
   for (i = 0; i < cl->nupvalues; i++) {
     UpVal *uv = luaM_new(L, UpVal);
@@ -54,7 +54,7 @@ void luaF_initupvals (lua_State *L, LClosure *cl) {
 }
 
 
-UpVal *luaF_findupval (lua_State *L, StkId level) {
+UpVal * luaF_findupval(lua_State *L, StkId level) {
   UpVal **pp = &L->openupval;
   UpVal *p;
   UpVal *uv;
@@ -80,7 +80,7 @@ UpVal *luaF_findupval (lua_State *L, StkId level) {
 }
 
 
-void luaF_close (lua_State *L, StkId level) {
+void luaF_close(lua_State *L, StkId level : itype(_Ptr<TValue> )) {
   UpVal *uv;
   while (L->openupval != NULL && (uv = L->openupval)->v >= level) {
     lua_assert(upisopen(uv));
@@ -96,9 +96,9 @@ void luaF_close (lua_State *L, StkId level) {
 }
 
 
-Proto *luaF_newproto (lua_State *L) {
+Proto *luaF_newproto(lua_State *L) : itype(_Ptr<Proto> )  {
   GCObject *o = luaC_newobj(L, LUA_TPROTO, sizeof(Proto));
-  Proto *f = gco2p(o);
+  _Ptr<Proto> f =  gco2p(o);
   f->k = NULL;
   f->sizek = 0;
   f->p = NULL;
@@ -122,7 +122,7 @@ Proto *luaF_newproto (lua_State *L) {
 }
 
 
-void luaF_freeproto (lua_State *L, Proto *f) {
+void luaF_freeproto(lua_State *L, Proto *f) {
   luaM_freearray(L, f->code, f->sizecode);
   luaM_freearray(L, f->p, f->sizep);
   luaM_freearray(L, f->k, f->sizek);
@@ -137,7 +137,7 @@ void luaF_freeproto (lua_State *L, Proto *f) {
 ** Look for n-th local variable at line 'line' in function 'func'.
 ** Returns NULL if not found.
 */
-const char *luaF_getlocalname (const Proto *f, int local_number, int pc) {
+const char * luaF_getlocalname(const Proto *f : itype(_Ptr<const Proto> ), int local_number, int pc) {
   int i;
   for (i = 0; i<f->sizelocvars && f->locvars[i].startpc <= pc; i++) {
     if (pc < f->locvars[i].endpc) {  /* is variable active? */

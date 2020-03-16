@@ -20,8 +20,8 @@
 
 
 typedef struct {
-  lua_State *L;
-  lua_Writer writer;
+  _Ptr<lua_State> L;
+  _Ptr<int (_Ptr<lua_State> , const void* , size_t , void* )> writer;
   void *data;
   int strip;
   int status;
@@ -37,7 +37,7 @@ typedef struct {
 #define DumpLiteral(s,D)	DumpBlock(s, sizeof(s) - sizeof(char), D)
 
 
-static void DumpBlock (const void *b, size_t size, DumpState *D) {
+static void DumpBlock(const void *b, size_t size, _Ptr<DumpState> D) {
   if (D->status == 0 && size > 0) {
     lua_unlock(D->L);
     D->status = (*D->writer)(D->L, b, size, D->data);
@@ -49,28 +49,28 @@ static void DumpBlock (const void *b, size_t size, DumpState *D) {
 #define DumpVar(x,D)		DumpVector(&x,1,D)
 
 
-static void DumpByte (int y, DumpState *D) {
+static void DumpByte(int y, _Ptr<DumpState> D) {
   lu_byte x = (lu_byte)y;
   DumpVar(x, D);
 }
 
 
-static void DumpInt (int x, DumpState *D) {
+static void DumpInt(int x, _Ptr<DumpState> D) {
   DumpVar(x, D);
 }
 
 
-static void DumpNumber (lua_Number x, DumpState *D) {
+static void DumpNumber(lua_Number x, _Ptr<DumpState> D) {
   DumpVar(x, D);
 }
 
 
-static void DumpInteger (lua_Integer x, DumpState *D) {
+static void DumpInteger(lua_Integer x, _Ptr<DumpState> D) {
   DumpVar(x, D);
 }
 
 
-static void DumpString (const TString *s, DumpState *D) {
+static void DumpString(const TString *s, _Ptr<DumpState> D) {
   if (s == NULL)
     DumpByte(0, D);
   else {
@@ -87,20 +87,20 @@ static void DumpString (const TString *s, DumpState *D) {
 }
 
 
-static void DumpCode (const Proto *f, DumpState *D) {
+static void DumpCode(_Ptr<const Proto> f, _Ptr<DumpState> D) {
   DumpInt(f->sizecode, D);
   DumpVector(f->code, f->sizecode, D);
 }
 
 
-static void DumpFunction(const Proto *f, TString *psource, DumpState *D);
+static void DumpFunction(const Proto *f : itype(_Ptr<const Proto> ), TString *psource : itype(_Ptr<TString> ), _Ptr<DumpState> D);
 
-static void DumpConstants (const Proto *f, DumpState *D) {
+static void DumpConstants(_Ptr<const Proto> f, _Ptr<DumpState> D) {
   int i;
   int n = f->sizek;
   DumpInt(n, D);
   for (i = 0; i < n; i++) {
-    const TValue *o = &f->k[i];
+    _Ptr<const TValue> o =  &f->k[i];
     DumpByte(ttype(o), D);
     switch (ttype(o)) {
     case LUA_TNIL:
@@ -125,7 +125,7 @@ static void DumpConstants (const Proto *f, DumpState *D) {
 }
 
 
-static void DumpProtos (const Proto *f, DumpState *D) {
+static void DumpProtos(_Ptr<const Proto> f, _Ptr<DumpState> D) {
   int i;
   int n = f->sizep;
   DumpInt(n, D);
@@ -134,7 +134,7 @@ static void DumpProtos (const Proto *f, DumpState *D) {
 }
 
 
-static void DumpUpvalues (const Proto *f, DumpState *D) {
+static void DumpUpvalues(_Ptr<const Proto> f, _Ptr<DumpState> D) {
   int i, n = f->sizeupvalues;
   DumpInt(n, D);
   for (i = 0; i < n; i++) {
@@ -144,7 +144,7 @@ static void DumpUpvalues (const Proto *f, DumpState *D) {
 }
 
 
-static void DumpDebug (const Proto *f, DumpState *D) {
+static void DumpDebug(_Ptr<const Proto> f, _Ptr<DumpState> D) {
   int i, n;
   n = (D->strip) ? 0 : f->sizelineinfo;
   DumpInt(n, D);
@@ -163,7 +163,7 @@ static void DumpDebug (const Proto *f, DumpState *D) {
 }
 
 
-static void DumpFunction (const Proto *f, TString *psource, DumpState *D) {
+static void DumpFunction(const Proto *f : itype(_Ptr<const Proto> ), TString *psource : itype(_Ptr<TString> ), _Ptr<DumpState> D) {
   if (D->strip || f->source == psource)
     DumpString(NULL, D);  /* no debug info or same source as its parent */
   else
@@ -181,7 +181,7 @@ static void DumpFunction (const Proto *f, TString *psource, DumpState *D) {
 }
 
 
-static void DumpHeader (DumpState *D) {
+static void DumpHeader(_Ptr<DumpState> D) {
   DumpLiteral(LUA_SIGNATURE, D);
   DumpByte(LUAC_VERSION, D);
   DumpByte(LUAC_FORMAT, D);
@@ -199,9 +199,8 @@ static void DumpHeader (DumpState *D) {
 /*
 ** dump Lua function as precompiled chunk
 */
-int luaU_dump(lua_State *L, const Proto *f, lua_Writer w, void *data,
-              int strip) {
-  DumpState D;
+int luaU_dump(lua_State *L : itype(_Ptr<lua_State> ), const Proto *f : itype(_Ptr<const Proto> ), _Ptr<int (_Ptr<lua_State> , _Ptr<const void> , size_t , void* )> w, void *data, int strip) {
+  DumpState D = {};
   D.L = L;
   D.writer = w;
   D.data = data;

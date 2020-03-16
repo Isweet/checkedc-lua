@@ -24,7 +24,7 @@
 #include "lvm.h"
 
 
-static const char udatatypename[] = "userdata";
+static _Ptr<const char> udatatypename =  "userdata";
 
 LUAI_DDEF const char *const luaT_typenames_[LUA_TOTALTAGS] = {
   "no value",
@@ -34,7 +34,7 @@ LUAI_DDEF const char *const luaT_typenames_[LUA_TOTALTAGS] = {
 };
 
 
-void luaT_init (lua_State *L) {
+void luaT_init(lua_State *L) {
   static const char *const luaT_eventname[] = {  /* ORDER TM */
     "__index", "__newindex",
     "__gc", "__mode", "__len", "__eq",
@@ -56,8 +56,8 @@ void luaT_init (lua_State *L) {
 ** function to be used with macro "fasttm": optimized for absence of
 ** tag methods
 */
-const TValue *luaT_gettm (Table *events, TMS event, TString *ename) {
-  const TValue *tm = luaH_getshortstr(events, ename);
+const TValue *luaT_gettm(Table *events : itype(_Ptr<Table> ), TMS event, TString *ename : itype(_Ptr<TString> )) : itype(_Ptr<const TValue> )  {
+  _Ptr<const TValue> tm =  luaH_getshortstr(events, ename);
   lua_assert(event <= TM_EQ);
   if (ttisnil(tm)) {  /* no tag method? */
     events->flags |= cast_byte(1u<<event);  /* cache this fact */
@@ -67,7 +67,7 @@ const TValue *luaT_gettm (Table *events, TMS event, TString *ename) {
 }
 
 
-const TValue *luaT_gettmbyobj (lua_State *L, const TValue *o, TMS event) {
+const TValue * luaT_gettmbyobj(lua_State *L : itype(_Ptr<lua_State> ), const TValue *o : itype(_Ptr<const TValue> ), TMS event) {
   Table *mt;
   switch (ttnov(o)) {
     case LUA_TTABLE:
@@ -87,11 +87,11 @@ const TValue *luaT_gettmbyobj (lua_State *L, const TValue *o, TMS event) {
 ** Return the name of the type of an object. For tables and userdata
 ** with metatable, use their '__name' metafield, if present.
 */
-const char *luaT_objtypename (lua_State *L, const TValue *o) {
+const char * luaT_objtypename(lua_State *L, const TValue *o : itype(_Ptr<const TValue> )) {
   Table *mt;
   if ((ttistable(o) && (mt = hvalue(o)->metatable) != NULL) ||
       (ttisfulluserdata(o) && (mt = uvalue(o)->metatable) != NULL)) {
-    const TValue *name = luaH_getshortstr(mt, luaS_new(L, "__name"));
+    _Ptr<const TValue> name =  luaH_getshortstr(mt, luaS_new(L, ((const char *)"__name")));
     if (ttisstring(name))  /* is '__name' a string? */
       return getstr(tsvalue(name));  /* use it as type name */
   }
@@ -99,8 +99,7 @@ const char *luaT_objtypename (lua_State *L, const TValue *o) {
 }
 
 
-void luaT_callTM (lua_State *L, const TValue *f, const TValue *p1,
-                  const TValue *p2, TValue *p3, int hasres) {
+void luaT_callTM(lua_State *L, const TValue *f : itype(_Ptr<const TValue> ), const TValue *p1 : itype(_Ptr<const TValue> ), const TValue *p2 : itype(_Ptr<const TValue> ), TValue *p3, int hasres) {
   ptrdiff_t result = savestack(L, p3);
   StkId func = L->top;
   setobj2s(L, func, f);  /* push function (assume EXTRA_STACK) */
@@ -121,8 +120,7 @@ void luaT_callTM (lua_State *L, const TValue *f, const TValue *p1,
 }
 
 
-int luaT_callbinTM (lua_State *L, const TValue *p1, const TValue *p2,
-                    StkId res, TMS event) {
+int luaT_callbinTM(lua_State *L, _Ptr<const TValue> p1, _Ptr<const TValue> p2, StkId res, TMS event) {
   const TValue *tm = luaT_gettmbyobj(L, p1, event);  /* try first operand */
   if (ttisnil(tm))
     tm = luaT_gettmbyobj(L, p2, event);  /* try second operand */
@@ -132,32 +130,30 @@ int luaT_callbinTM (lua_State *L, const TValue *p1, const TValue *p2,
 }
 
 
-void luaT_trybinTM (lua_State *L, const TValue *p1, const TValue *p2,
-                    StkId res, TMS event) {
-  if (!luaT_callbinTM(L, p1, p2, res, event)) {
+void luaT_trybinTM(lua_State *L : itype(_Ptr<lua_State> ), const TValue *p1, const TValue *p2, StkId res, TMS event) {
+  if (!luaT_callbinTM(((lua_State *)L), p1, p2, res, event)) {
     switch (event) {
       case TM_CONCAT:
-        luaG_concaterror(L, p1, p2);
+        luaG_concaterror(((lua_State *)L), p1, p2);
       /* call never returns, but to avoid warnings: *//* FALLTHROUGH */
       case TM_BAND: case TM_BOR: case TM_BXOR:
       case TM_SHL: case TM_SHR: case TM_BNOT: {
         lua_Number dummy;
         if (tonumber(p1, &dummy) && tonumber(p2, &dummy))
-          luaG_tointerror(L, p1, p2);
+          luaG_tointerror(((lua_State *)L), p1, p2);
         else
-          luaG_opinterror(L, p1, p2, "perform bitwise operation on");
+          luaG_opinterror(((lua_State *)L), p1, p2, ((const char *)"perform bitwise operation on"));
       }
       /* calls never return, but to avoid warnings: *//* FALLTHROUGH */
       default:
-        luaG_opinterror(L, p1, p2, "perform arithmetic on");
+        luaG_opinterror(((lua_State *)L), p1, p2, ((const char *)"perform arithmetic on"));
     }
   }
 }
 
 
-int luaT_callorderTM (lua_State *L, const TValue *p1, const TValue *p2,
-                      TMS event) {
-  if (!luaT_callbinTM(L, p1, p2, L->top, event))
+int luaT_callorderTM(_Ptr<lua_State> L, const TValue *p1, const TValue *p2, TMS event) {
+  if (!luaT_callbinTM(((lua_State *)L), p1, p2, L->top, event))
     return -1;  /* no metamethod */
   else
     return !l_isfalse(L->top);

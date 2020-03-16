@@ -66,7 +66,7 @@
 #define l_timet			lua_Integer
 #define l_pushtime(L,t)		lua_pushinteger(L,(lua_Integer)(t))
 
-static time_t l_checktime (lua_State *L, int arg) {
+static time_t l_checktime(lua_State *L, int arg) {
   lua_Integer t = luaL_checkinteger(L, arg);
   luaL_argcheck(L, (time_t)t == t, arg, "time out-of-bounds");
   return (time_t)t;
@@ -138,7 +138,7 @@ static time_t l_checktime (lua_State *L, int arg) {
 
 
 
-static int os_execute (lua_State *L) {
+static int os_execute(lua_State *L) {
   const char *cmd = luaL_optstring(L, 1, NULL);
   int stat = system(cmd);
   if (cmd != NULL)
@@ -150,20 +150,20 @@ static int os_execute (lua_State *L) {
 }
 
 
-static int os_remove (lua_State *L) {
-  const char *filename = luaL_checkstring(L, 1);
+static int os_remove(lua_State *L) {
+  _Ptr<const char> filename =  luaL_checkstring(L, 1);
   return luaL_fileresult(L, remove(filename) == 0, filename);
 }
 
 
-static int os_rename (lua_State *L) {
-  const char *fromname = luaL_checkstring(L, 1);
-  const char *toname = luaL_checkstring(L, 2);
+static int os_rename(lua_State *L) {
+  _Ptr<const char> fromname =  luaL_checkstring(L, 1);
+  _Ptr<const char> toname =  luaL_checkstring(L, 2);
   return luaL_fileresult(L, rename(fromname, toname) == 0, NULL);
 }
 
 
-static int os_tmpname (lua_State *L) {
+static int os_tmpname(lua_State *L) {
   char buff[LUA_TMPNAMBUFSIZE];
   int err;
   lua_tmpnam(buff, err);
@@ -174,13 +174,13 @@ static int os_tmpname (lua_State *L) {
 }
 
 
-static int os_getenv (lua_State *L) {
+static int os_getenv(lua_State *L) {
   lua_pushstring(L, getenv(luaL_checkstring(L, 1)));  /* if NULL push nil */
   return 1;
 }
 
 
-static int os_clock (lua_State *L) {
+static int os_clock(_Ptr<lua_State> L) {
   lua_pushnumber(L, ((lua_Number)clock())/(lua_Number)CLOCKS_PER_SEC);
   return 1;
 }
@@ -194,12 +194,12 @@ static int os_clock (lua_State *L) {
 ** =======================================================
 */
 
-static void setfield (lua_State *L, const char *key, int value) {
+static void setfield(_Ptr<lua_State> L, _Ptr<const char> key, int value) {
   lua_pushinteger(L, value);
   lua_setfield(L, -2, key);
 }
 
-static void setboolfield (lua_State *L, const char *key, int value) {
+static void setboolfield(_Ptr<lua_State> L, _Ptr<const char> key, int value) {
   if (value < 0)  /* undefined? */
     return;  /* does not set field */
   lua_pushboolean(L, value);
@@ -210,7 +210,7 @@ static void setboolfield (lua_State *L, const char *key, int value) {
 /*
 ** Set all fields from structure 'tm' in the table on top of the stack
 */
-static void setallfields (lua_State *L, struct tm *stm) {
+static void setallfields(lua_State *L : itype(_Ptr<lua_State> ), struct tm *stm : itype(_Ptr<struct tm> )) {
   setfield(L, "sec", stm->tm_sec);
   setfield(L, "min", stm->tm_min);
   setfield(L, "hour", stm->tm_hour);
@@ -223,7 +223,7 @@ static void setallfields (lua_State *L, struct tm *stm) {
 }
 
 
-static int getboolfield (lua_State *L, const char *key) {
+static int getboolfield(lua_State *L : itype(_Ptr<lua_State> ), _Ptr<const char> key) {
   int res;
   res = (lua_getfield(L, -1, key) == LUA_TNIL) ? -1 : lua_toboolean(L, -1);
   lua_pop(L, 1);
@@ -236,7 +236,7 @@ static int getboolfield (lua_State *L, const char *key) {
 #define L_MAXDATEFIELD	(INT_MAX / 2)
 #endif
 
-static int getfield (lua_State *L, const char *key, int d, int delta) {
+static int getfield(lua_State *L, _Ptr<const char> key, int d, int delta) {
   int isnum;
   int t = lua_getfield(L, -1, key);  /* get field and its type */
   lua_Integer res = lua_tointegerx(L, -1, &isnum);
@@ -257,8 +257,7 @@ static int getfield (lua_State *L, const char *key, int d, int delta) {
 }
 
 
-static const char *checkoption (lua_State *L, const char *conv,
-                                ptrdiff_t convlen, char *buff) {
+static const char * checkoption(lua_State *L, const char *conv, ptrdiff_t convlen, char *buff) {
   const char *option = LUA_STRFTIMEOPTIONS;
   int oplen = 1;  /* length of options being checked */
   for (; *option != '\0' && oplen <= convlen; option += oplen) {
@@ -280,9 +279,9 @@ static const char *checkoption (lua_State *L, const char *conv,
 #define SIZETIMEFMT	250
 
 
-static int os_date (lua_State *L) {
+static int os_date(lua_State *L) {
   size_t slen;
-  const char *s = luaL_optlstring(L, 1, "%c", &slen);
+  const char *s = luaL_optlstring(L, 1, ((const char *)"%c"), &slen);
   time_t t = luaL_opt(L, l_checktime, 2, time(NULL));
   const char *se = s + slen;  /* 's' end */
   struct tm tmr, *stm;
@@ -295,13 +294,13 @@ static int os_date (lua_State *L) {
   if (stm == NULL)  /* invalid date? */
     return luaL_error(L,
                  "time result cannot be represented in this installation");
-  if (strcmp(s, "*t") == 0) {
+  if (strcmp(s, ((const char *)"*t")) == 0) {
     lua_createtable(L, 0, 9);  /* 9 = number of fields */
     setallfields(L, stm);
   }
   else {
     char cc[4];  /* buffer for individual conversion specifiers */
-    luaL_Buffer b;
+    luaL_Buffer b = {};
     cc[0] = '%';
     luaL_buffinit(L, &b);
     while (s < se) {
@@ -309,7 +308,7 @@ static int os_date (lua_State *L) {
         luaL_addchar(&b, *s++);
       else {
         size_t reslen;
-        char *buff = luaL_prepbuffsize(&b, SIZETIMEFMT);
+        _Ptr<char> buff =  luaL_prepbuffsize(&b, SIZETIMEFMT);
         s++;  /* skip '%' */
         s = checkoption(L, s, se - s, cc + 1);  /* copy specifier to 'cc' */
         reslen = strftime(buff, SIZETIMEFMT, cc, stm);
@@ -322,7 +321,7 @@ static int os_date (lua_State *L) {
 }
 
 
-static int os_time (lua_State *L) {
+static int os_time(lua_State *L) {
   time_t t;
   if (lua_isnoneornil(L, 1))  /* called without args? */
     t = time(NULL);  /* get current time */
@@ -348,7 +347,7 @@ static int os_time (lua_State *L) {
 }
 
 
-static int os_difftime (lua_State *L) {
+static int os_difftime(lua_State *L) {
   time_t t1 = l_checktime(L, 1);
   time_t t2 = l_checktime(L, 2);
   lua_pushnumber(L, (lua_Number)difftime(t1, t2));
@@ -358,19 +357,19 @@ static int os_difftime (lua_State *L) {
 /* }====================================================== */
 
 
-static int os_setlocale (lua_State *L) {
+static int os_setlocale(lua_State *L) {
   static const int cat[] = {LC_ALL, LC_COLLATE, LC_CTYPE, LC_MONETARY,
                       LC_NUMERIC, LC_TIME};
-  static const char *const catnames[] = {"all", "collate", "ctype", "monetary",
+  static const _Ptr<const char> catnames _Checked[7] =  {"all", "collate", "ctype", "monetary",
      "numeric", "time", NULL};
   const char *l = luaL_optstring(L, 1, NULL);
-  int op = luaL_checkoption(L, 2, "all", catnames);
+  int op = luaL_checkoption(L, 2, ((const char *)"all"), ((const char *const *)catnames));
   lua_pushstring(L, setlocale(cat[op], l));
   return 1;
 }
 
 
-static int os_exit (lua_State *L) {
+static int os_exit(lua_State *L) {
   int status;
   if (lua_isboolean(L, 1))
     status = (lua_toboolean(L, 1) ? EXIT_SUCCESS : EXIT_FAILURE);

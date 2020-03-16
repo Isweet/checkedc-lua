@@ -22,7 +22,7 @@
 #include "lstate.h"
 #include "lundump.h"
 
-static void PrintFunction(const Proto* f, int full);
+static void PrintFunction(const Proto *f : itype(_Ptr<const Proto> ), int full);
 #define luaU_print	PrintFunction
 
 #define PROGNAME	"luac"		/* default program name */
@@ -31,30 +31,30 @@ static void PrintFunction(const Proto* f, int full);
 static int listing=0;			/* list bytecodes? */
 static int dumping=1;			/* dump bytecodes? */
 static int stripping=0;			/* strip debug information? */
-static char Output[]={ OUTPUT };	/* default output file name */
+static _Ptr<char> Output = { OUTPUT };	/* default output file name */
 static const char* output=Output;	/* actual output file name */
 static const char* progname=PROGNAME;	/* actual program name */
 
-static void fatal(const char* message)
+static void fatal(const char *message : itype(_Ptr<const char> ))
 {
- fprintf(stderr,"%s: %s\n",progname,message);
+ fprintf(stderr,((const char *)"%s: %s\n"),progname,message);
  exit(EXIT_FAILURE);
 }
 
-static void cannot(const char* what)
+static void cannot(_Ptr<const char> what)
 {
- fprintf(stderr,"%s: cannot %s %s: %s\n",progname,what,output,strerror(errno));
+ fprintf(stderr,((const char *)"%s: cannot %s %s: %s\n"),progname,what,output,strerror(errno));
  exit(EXIT_FAILURE);
 }
 
-static void usage(const char* message)
+static void usage(const char *message : itype(_Ptr<const char> ))
 {
  if (*message=='-')
-  fprintf(stderr,"%s: unrecognized option '%s'\n",progname,message);
+  fprintf(stderr,((const char *)"%s: unrecognized option '%s'\n"),progname,message);
  else
-  fprintf(stderr,"%s: %s\n",progname,message);
+  fprintf(stderr,((const char *)"%s: %s\n"),progname,message);
  fprintf(stderr,
-  "usage: %s [options] [filenames]\n"
+  ((const char *)"usage: %s [options] [filenames]\n"
   "Available options are:\n"
   "  -l       list (use -l -l for full listing)\n"
   "  -o name  output to file 'name' (default is \"%s\")\n"
@@ -62,14 +62,14 @@ static void usage(const char* message)
   "  -s       strip debug information\n"
   "  -v       show version information\n"
   "  --       stop handling options\n"
-  "  -        stop handling options and process stdin\n"
+  "  -        stop handling options and process stdin\n")
   ,progname,Output);
  exit(EXIT_FAILURE);
 }
 
 #define IS(s)	(strcmp(argv[i],s)==0)
 
-static int doargs(int argc, char* argv[])
+static int doargs(int argc, char *argv[])
 {
  int i;
  int version=0;
@@ -111,7 +111,7 @@ static int doargs(int argc, char* argv[])
  }
  if (version)
  {
-  printf("%s\n",LUA_COPYRIGHT);
+  printf(((const char *)"%s\n"),LUA_COPYRIGHT);
   if (version==argc-1) exit(EXIT_SUCCESS);
  }
  return i;
@@ -119,7 +119,7 @@ static int doargs(int argc, char* argv[])
 
 #define FUNCTION "(function()end)();"
 
-static const char* reader(lua_State *L, void *ud, size_t *size)
+static const char * reader(lua_State *L, void *ud, _Ptr<size_t> size)
 {
  UNUSED(L);
  if ((*(int*)ud)--)
@@ -136,7 +136,7 @@ static const char* reader(lua_State *L, void *ud, size_t *size)
 
 #define toproto(L,i) getproto(L->top+(i))
 
-static const Proto* combine(lua_State* L, int n)
+static const Proto * combine(lua_State *L, int n)
 {
  if (n==1)
   return toproto(L,-1);
@@ -144,7 +144,7 @@ static const Proto* combine(lua_State* L, int n)
  {
   Proto* f;
   int i=n;
-  if (lua_load(L,reader,&i,"=(" PROGNAME ")",NULL)!=LUA_OK) fatal(lua_tostring(L,-1));
+  if (lua_load(L,reader,&i,((const char *)"=(" PROGNAME ")"),NULL)!=LUA_OK) fatal(lua_tostring(L,-1));
   f=toproto(L,-1);
   for (i=0; i<n; i++)
   {
@@ -156,13 +156,13 @@ static const Proto* combine(lua_State* L, int n)
  }
 }
 
-static int writer(lua_State* L, const void* p, size_t size, void* u)
+static int writer(lua_State *L, const void *p, size_t size, void *u)
 {
  UNUSED(L);
  return (fwrite(p,size,1,(FILE*)u)!=1) && (size!=0);
 }
 
-static int pmain(lua_State* L)
+static int pmain(lua_State *L)
 {
  int argc=(int)lua_tointeger(L,1);
  char** argv=(char**)lua_touserdata(L,2);
@@ -178,7 +178,7 @@ static int pmain(lua_State* L)
  if (listing) luaU_print(f,listing>1);
  if (dumping)
  {
-  FILE* D= (output==NULL) ? stdout : fopen(output,"wb");
+  FILE* D= (output==NULL) ? stdout : fopen(output,((const char *)"wb"));
   if (D==NULL) cannot("open");
   lua_lock(L);
   luaU_dump(L,f,writer,D,stripping);
@@ -189,7 +189,7 @@ static int pmain(lua_State* L)
  return 0;
 }
 
-int main(int argc, char* argv[])
+int main(int argc, char *argv[])
 {
  lua_State* L;
  int i=doargs(argc,argv);
@@ -223,51 +223,51 @@ int main(int argc, char* argv[])
 
 #define VOID(p)		((const void*)(p))
 
-static void PrintString(const TString* ts)
+static void PrintString(const TString *ts)
 {
  const char* s=getstr(ts);
  size_t i,n=tsslen(ts);
- printf("%c",'"');
+ printf(((const char *)"%c"),'"');
  for (i=0; i<n; i++)
  {
   int c=(int)(unsigned char)s[i];
   switch (c)
   {
-   case '"':  printf("\\\""); break;
-   case '\\': printf("\\\\"); break;
-   case '\a': printf("\\a"); break;
-   case '\b': printf("\\b"); break;
-   case '\f': printf("\\f"); break;
-   case '\n': printf("\\n"); break;
-   case '\r': printf("\\r"); break;
-   case '\t': printf("\\t"); break;
-   case '\v': printf("\\v"); break;
+   case '"':  printf(((const char *)"\\\"")); break;
+   case '\\': printf(((const char *)"\\\\")); break;
+   case '\a': printf(((const char *)"\\a")); break;
+   case '\b': printf(((const char *)"\\b")); break;
+   case '\f': printf(((const char *)"\\f")); break;
+   case '\n': printf(((const char *)"\\n")); break;
+   case '\r': printf(((const char *)"\\r")); break;
+   case '\t': printf(((const char *)"\\t")); break;
+   case '\v': printf(((const char *)"\\v")); break;
    default:	if (isprint(c))
-   			printf("%c",c);
+   			printf(((const char *)"%c"),c);
 		else
-			printf("\\%03d",c);
+			printf(((const char *)"\\%03d"),c);
   }
  }
- printf("%c",'"');
+ printf(((const char *)"%c"),'"');
 }
 
-static void PrintConstant(const Proto* f, int i)
+static void PrintConstant(_Ptr<const Proto> f, int i)
 {
- const TValue* o=&f->k[i];
+ _Ptr<const TValue> o = &f->k[i];
  switch (ttype(o))
  {
   case LUA_TNIL:
-	printf("nil");
+	printf(((const char *)"nil"));
 	break;
   case LUA_TBOOLEAN:
-	printf(bvalue(o) ? "true" : "false");
+	printf(bvalue(o) ? "true" : "false"));
 	break;
   case LUA_TNUMFLT:
 	{
 	char buff[100];
 	sprintf(buff,LUA_NUMBER_FMT,fltvalue(o));
-	printf("%s",buff);
-	if (buff[strspn(buff,"-0123456789")]=='\0') printf(".0");
+	printf(((const char *)"%s"),buff);
+	if (buff[strspn(buff,((const char *)"-0123456789"))]=='\0') printf(((const char *)".0"));
 	break;
 	}
   case LUA_TNUMINT:
@@ -277,7 +277,7 @@ static void PrintConstant(const Proto* f, int i)
 	PrintString(tsvalue(o));
 	break;
   default:				/* cannot happen */
-	printf("? type=%d",ttype(o));
+	printf(((const char *)"? type=%d"),ttype(o));
 	break;
  }
 }
@@ -285,7 +285,7 @@ static void PrintConstant(const Proto* f, int i)
 #define UPVALNAME(x) ((f->upvalues[x].name) ? getstr(f->upvalues[x].name) : "-")
 #define MYK(x)		(-1-(x))
 
-static void PrintCode(const Proto* f)
+static void PrintCode(_Ptr<const Proto> f)
 {
  const Instruction* code=f->code;
  int pc,n=f->sizecode;
@@ -300,49 +300,49 @@ static void PrintCode(const Proto* f)
   int bx=GETARG_Bx(i);
   int sbx=GETARG_sBx(i);
   int line=getfuncline(f,pc);
-  printf("\t%d\t",pc+1);
-  if (line>0) printf("[%d]\t",line); else printf("[-]\t");
-  printf("%-9s\t",luaP_opnames[o]);
+  printf(((const char *)"\t%d\t"),pc+1);
+  if (line>0) printf(((const char *)"[%d]\t"),line); else printf(((const char *)"[-]\t"));
+  printf(((const char *)"%-9s\t"),luaP_opnames[o]);
   switch (getOpMode(o))
   {
    case iABC:
-    printf("%d",a);
-    if (getBMode(o)!=OpArgN) printf(" %d",ISK(b) ? (MYK(INDEXK(b))) : b);
-    if (getCMode(o)!=OpArgN) printf(" %d",ISK(c) ? (MYK(INDEXK(c))) : c);
+    printf(((const char *)"%d"),a);
+    if (getBMode(o)!=OpArgN) printf(((const char *)" %d"),ISK(b) ? (MYK(INDEXK(b))) : b);
+    if (getCMode(o)!=OpArgN) printf(((const char *)" %d"),ISK(c) ? (MYK(INDEXK(c))) : c);
     break;
    case iABx:
-    printf("%d",a);
-    if (getBMode(o)==OpArgK) printf(" %d",MYK(bx));
-    if (getBMode(o)==OpArgU) printf(" %d",bx);
+    printf(((const char *)"%d"),a);
+    if (getBMode(o)==OpArgK) printf(((const char *)" %d"),MYK(bx));
+    if (getBMode(o)==OpArgU) printf(((const char *)" %d"),bx);
     break;
    case iAsBx:
-    printf("%d %d",a,sbx);
+    printf(((const char *)"%d %d"),a,sbx);
     break;
    case iAx:
-    printf("%d",MYK(ax));
+    printf(((const char *)"%d"),MYK(ax));
     break;
   }
   switch (o)
   {
    case OP_LOADK:
-    printf("\t; "); PrintConstant(f,bx);
+    printf(((const char *)"\t; ")); PrintConstant(f,bx);
     break;
    case OP_GETUPVAL:
    case OP_SETUPVAL:
-    printf("\t; %s",UPVALNAME(b));
+    printf(((const char *)"\t; %s"),UPVALNAME(b));
     break;
    case OP_GETTABUP:
-    printf("\t; %s",UPVALNAME(b));
-    if (ISK(c)) { printf(" "); PrintConstant(f,INDEXK(c)); }
+    printf(((const char *)"\t; %s"),UPVALNAME(b));
+    if (ISK(c)) { printf(((const char *)" ")); PrintConstant(f,INDEXK(c)); }
     break;
    case OP_SETTABUP:
-    printf("\t; %s",UPVALNAME(a));
-    if (ISK(b)) { printf(" "); PrintConstant(f,INDEXK(b)); }
-    if (ISK(c)) { printf(" "); PrintConstant(f,INDEXK(c)); }
+    printf(((const char *)"\t; %s"),UPVALNAME(a));
+    if (ISK(b)) { printf(((const char *)" ")); PrintConstant(f,INDEXK(b)); }
+    if (ISK(c)) { printf(((const char *)" ")); PrintConstant(f,INDEXK(c)); }
     break;
    case OP_GETTABLE:
    case OP_SELF:
-    if (ISK(c)) { printf("\t; "); PrintConstant(f,INDEXK(c)); }
+    if (ISK(c)) { printf(((const char *)"\t; ")); PrintConstant(f,INDEXK(c)); }
     break;
    case OP_SETTABLE:
    case OP_ADD:
@@ -362,38 +362,38 @@ static void PrintCode(const Proto* f)
    case OP_LE:
     if (ISK(b) || ISK(c))
     {
-     printf("\t; ");
-     if (ISK(b)) PrintConstant(f,INDEXK(b)); else printf("-");
-     printf(" ");
-     if (ISK(c)) PrintConstant(f,INDEXK(c)); else printf("-");
+     printf(((const char *)"\t; "));
+     if (ISK(b)) PrintConstant(f,INDEXK(b)); else printf(((const char *)"-"));
+     printf(((const char *)" "));
+     if (ISK(c)) PrintConstant(f,INDEXK(c)); else printf(((const char *)"-"));
     }
     break;
    case OP_JMP:
    case OP_FORLOOP:
    case OP_FORPREP:
    case OP_TFORLOOP:
-    printf("\t; to %d",sbx+pc+2);
+    printf(((const char *)"\t; to %d"),sbx+pc+2);
     break;
    case OP_CLOSURE:
-    printf("\t; %p",VOID(f->p[bx]));
+    printf(((const char *)"\t; %p"),VOID(f->p[bx]));
     break;
    case OP_SETLIST:
-    if (c==0) printf("\t; %d",(int)code[++pc]); else printf("\t; %d",c);
+    if (c==0) printf(((const char *)"\t; %d"),(int)code[++pc]); else printf(((const char *)"\t; %d"),c);
     break;
    case OP_EXTRAARG:
-    printf("\t; "); PrintConstant(f,ax);
+    printf(((const char *)"\t; ")); PrintConstant(f,ax);
     break;
    default:
     break;
   }
-  printf("\n");
+  printf(((const char *)"\n"));
  }
 }
 
 #define SS(x)	((x==1)?"":"s")
 #define S(x)	(int)(x),SS(x)
 
-static void PrintHeader(const Proto* f)
+static void PrintHeader(_Ptr<const Proto> f)
 {
  const char* s=f->source ? getstr(f->source) : "=?";
  if (*s=='@' || *s=='=')
@@ -402,45 +402,45 @@ static void PrintHeader(const Proto* f)
   s="(bstring)";
  else
   s="(string)";
- printf("\n%s <%s:%d,%d> (%d instruction%s at %p)\n",
+ printf(((const char *)"\n%s <%s:%d,%d> (%d instruction%s at %p)\n"),
  	(f->linedefined==0)?"main":"function",s,
 	f->linedefined,f->lastlinedefined,
 	S(f->sizecode),VOID(f));
- printf("%d%s param%s, %d slot%s, %d upvalue%s, ",
+ printf(((const char *)"%d%s param%s, %d slot%s, %d upvalue%s, "),
 	(int)(f->numparams),f->is_vararg?"+":"",SS(f->numparams),
 	S(f->maxstacksize),S(f->sizeupvalues));
- printf("%d local%s, %d constant%s, %d function%s\n",
+ printf(((const char *)"%d local%s, %d constant%s, %d function%s\n"),
 	S(f->sizelocvars),S(f->sizek),S(f->sizep));
 }
 
-static void PrintDebug(const Proto* f)
+static void PrintDebug(_Ptr<const Proto> f)
 {
  int i,n;
  n=f->sizek;
- printf("constants (%d) for %p:\n",n,VOID(f));
+ printf(((const char *)"constants (%d) for %p:\n"),n,VOID(f));
  for (i=0; i<n; i++)
  {
-  printf("\t%d\t",i+1);
+  printf(((const char *)"\t%d\t"),i+1);
   PrintConstant(f,i);
-  printf("\n");
+  printf(((const char *)"\n"));
  }
  n=f->sizelocvars;
- printf("locals (%d) for %p:\n",n,VOID(f));
+ printf(((const char *)"locals (%d) for %p:\n"),n,VOID(f));
  for (i=0; i<n; i++)
  {
-  printf("\t%d\t%s\t%d\t%d\n",
+  printf(((const char *)"\t%d\t%s\t%d\t%d\n"),
   i,getstr(f->locvars[i].varname),f->locvars[i].startpc+1,f->locvars[i].endpc+1);
  }
  n=f->sizeupvalues;
- printf("upvalues (%d) for %p:\n",n,VOID(f));
+ printf(((const char *)"upvalues (%d) for %p:\n"),n,VOID(f));
  for (i=0; i<n; i++)
  {
-  printf("\t%d\t%s\t%d\t%d\n",
+  printf(((const char *)"\t%d\t%s\t%d\t%d\n"),
   i,UPVALNAME(i),f->upvalues[i].instack,f->upvalues[i].idx);
  }
 }
 
-static void PrintFunction(const Proto* f, int full)
+static void PrintFunction(const Proto *f : itype(_Ptr<const Proto> ), int full)
 {
  int i,n=f->sizep;
  PrintHeader(f);

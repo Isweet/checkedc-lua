@@ -32,19 +32,19 @@ static const int HOOKKEY = 0;
 ** guarantees about its stack space; any push in L1 must be
 ** checked.
 */
-static void checkstack (lua_State *L, lua_State *L1, int n) {
+static void checkstack(lua_State *L, lua_State *L1 : itype(_Ptr<lua_State> ), int n) {
   if (L != L1 && !lua_checkstack(L1, n))
     luaL_error(L, "stack overflow");
 }
 
 
-static int db_getregistry (lua_State *L) {
+static int db_getregistry(lua_State *L) {
   lua_pushvalue(L, LUA_REGISTRYINDEX);
   return 1;
 }
 
 
-static int db_getmetatable (lua_State *L) {
+static int db_getmetatable(lua_State *L) {
   luaL_checkany(L, 1);
   if (!lua_getmetatable(L, 1)) {
     lua_pushnil(L);  /* no metatable */
@@ -53,7 +53,7 @@ static int db_getmetatable (lua_State *L) {
 }
 
 
-static int db_setmetatable (lua_State *L) {
+static int db_setmetatable(lua_State *L) {
   int t = lua_type(L, 2);
   luaL_argcheck(L, t == LUA_TNIL || t == LUA_TTABLE, 2,
                     "nil or table expected");
@@ -63,7 +63,7 @@ static int db_setmetatable (lua_State *L) {
 }
 
 
-static int db_getuservalue (lua_State *L) {
+static int db_getuservalue(_Ptr<lua_State> L) {
   if (lua_type(L, 1) != LUA_TUSERDATA)
     lua_pushnil(L);
   else
@@ -72,7 +72,7 @@ static int db_getuservalue (lua_State *L) {
 }
 
 
-static int db_setuservalue (lua_State *L) {
+static int db_setuservalue(lua_State *L) {
   luaL_checktype(L, 1, LUA_TUSERDATA);
   luaL_checkany(L, 2);
   lua_settop(L, 2);
@@ -87,7 +87,7 @@ static int db_setuservalue (lua_State *L) {
 ** 1 if this argument is present (so that functions can skip it to
 ** access their other arguments)
 */
-static lua_State *getthread (lua_State *L, int *arg) {
+static lua_State *getthread(lua_State *L : itype(_Ptr<lua_State> ), _Ptr<int> arg) : itype(_Ptr<lua_State> )  {
   if (lua_isthread(L, 1)) {
     *arg = 1;
     return lua_tothread(L, 1);
@@ -104,17 +104,17 @@ static lua_State *getthread (lua_State *L, int *arg) {
 ** from 'lua_getinfo' into result table. Key is always a string;
 ** value can be a string, an int, or a boolean.
 */
-static void settabss (lua_State *L, const char *k, const char *v) {
+static void settabss(lua_State *L, _Ptr<const char> k, const char *v) {
   lua_pushstring(L, v);
   lua_setfield(L, -2, k);
 }
 
-static void settabsi (lua_State *L, const char *k, int v) {
+static void settabsi(lua_State *L : itype(_Ptr<lua_State> ), _Ptr<const char> k, int v) {
   lua_pushinteger(L, v);
   lua_setfield(L, -2, k);
 }
 
-static void settabsb (lua_State *L, const char *k, int v) {
+static void settabsb(lua_State *L : itype(_Ptr<lua_State> ), _Ptr<const char> k, int v) {
   lua_pushboolean(L, v);
   lua_setfield(L, -2, k);
 }
@@ -127,7 +127,7 @@ static void settabsb (lua_State *L, const char *k, int v) {
 ** 'lua_getinfo' on top of the result table so that it can call
 ** 'lua_setfield'.
 */
-static void treatstackoption (lua_State *L, lua_State *L1, const char *fname) {
+static void treatstackoption(lua_State *L, lua_State *L1 : itype(_Ptr<lua_State> ), _Ptr<const char> fname) {
   if (L == L1)
     lua_rotate(L, -2, 1);  /* exchange object and table */
   else
@@ -142,7 +142,7 @@ static void treatstackoption (lua_State *L, lua_State *L1, const char *fname) {
 ** two optional outputs (function and line table) from function
 ** 'lua_getinfo'.
 */
-static int db_getinfo (lua_State *L) {
+static int db_getinfo(lua_State *L) {
   lua_Debug ar;
   int arg;
   lua_State *L1 = getthread(L, &arg);
@@ -190,7 +190,7 @@ static int db_getinfo (lua_State *L) {
 }
 
 
-static int db_getlocal (lua_State *L) {
+static int db_getlocal(lua_State *L) {
   int arg;
   lua_State *L1 = getthread(L, &arg);
   lua_Debug ar;
@@ -221,7 +221,7 @@ static int db_getlocal (lua_State *L) {
 }
 
 
-static int db_setlocal (lua_State *L) {
+static int db_setlocal(lua_State *L) {
   int arg;
   const char *name;
   lua_State *L1 = getthread(L, &arg);
@@ -245,7 +245,7 @@ static int db_setlocal (lua_State *L) {
 /*
 ** get (if 'get' is true) or set an upvalue from a closure
 */
-static int auxupvalue (lua_State *L, int get) {
+static int auxupvalue(lua_State *L, int get) {
   const char *name;
   int n = (int)luaL_checkinteger(L, 2);  /* upvalue index */
   luaL_checktype(L, 1, LUA_TFUNCTION);  /* closure */
@@ -257,12 +257,12 @@ static int auxupvalue (lua_State *L, int get) {
 }
 
 
-static int db_getupvalue (lua_State *L) {
+static int db_getupvalue(lua_State *L) {
   return auxupvalue(L, 1);
 }
 
 
-static int db_setupvalue (lua_State *L) {
+static int db_setupvalue(lua_State *L) {
   luaL_checkany(L, 3);
   return auxupvalue(L, 0);
 }
@@ -272,7 +272,7 @@ static int db_setupvalue (lua_State *L) {
 ** Check whether a given upvalue from a given closure exists and
 ** returns its index
 */
-static int checkupval (lua_State *L, int argf, int argnup) {
+static int checkupval(lua_State *L, int argf, int argnup) {
   int nup = (int)luaL_checkinteger(L, argnup);  /* upvalue index */
   luaL_checktype(L, argf, LUA_TFUNCTION);  /* closure */
   luaL_argcheck(L, (lua_getupvalue(L, argf, nup) != NULL), argnup,
@@ -281,14 +281,14 @@ static int checkupval (lua_State *L, int argf, int argnup) {
 }
 
 
-static int db_upvalueid (lua_State *L) {
+static int db_upvalueid(lua_State *L) {
   int n = checkupval(L, 1, 2);
   lua_pushlightuserdata(L, lua_upvalueid(L, 1, n));
   return 1;
 }
 
 
-static int db_upvaluejoin (lua_State *L) {
+static int db_upvaluejoin(lua_State *L) {
   int n1 = checkupval(L, 1, 2);
   int n2 = checkupval(L, 3, 4);
   luaL_argcheck(L, !lua_iscfunction(L, 1), 1, "Lua function expected");
@@ -302,7 +302,7 @@ static int db_upvaluejoin (lua_State *L) {
 ** Call hook function registered at hook table for the current
 ** thread (if there is one)
 */
-static void hookf (lua_State *L, lua_Debug *ar) {
+static void hookf(lua_State *L, _Ptr<lua_Debug> ar) {
   static const char *const hooknames[] =
     {"call", "return", "line", "count", "tail call"};
   lua_rawgetp(L, LUA_REGISTRYINDEX, &HOOKKEY);
@@ -321,7 +321,7 @@ static void hookf (lua_State *L, lua_Debug *ar) {
 /*
 ** Convert a string mask (for 'sethook') into a bit mask
 */
-static int makemask (const char *smask, int count) {
+static int makemask(const char *smask, int count) {
   int mask = 0;
   if (strchr(smask, 'c')) mask |= LUA_MASKCALL;
   if (strchr(smask, 'r')) mask |= LUA_MASKRET;
@@ -334,7 +334,7 @@ static int makemask (const char *smask, int count) {
 /*
 ** Convert a bit mask (for 'gethook') into a string mask
 */
-static char *unmakemask (int mask, char *smask) {
+static char * unmakemask(int mask, char *smask) {
   int i = 0;
   if (mask & LUA_MASKCALL) smask[i++] = 'c';
   if (mask & LUA_MASKRET) smask[i++] = 'r';
@@ -344,25 +344,25 @@ static char *unmakemask (int mask, char *smask) {
 }
 
 
-static int db_sethook (lua_State *L) {
+static int db_sethook(lua_State *L) {
   int arg, mask, count;
-  lua_Hook func;
+  _Ptr<void (_Ptr<lua_State> , _Ptr<lua_Debug> )> func = NULL;
   lua_State *L1 = getthread(L, &arg);
   if (lua_isnoneornil(L, arg+1)) {  /* no hook? */
     lua_settop(L, arg+1);
     func = NULL; mask = 0; count = 0;  /* turn off hooks */
   }
   else {
-    const char *smask = luaL_checkstring(L, arg+2);
+    _Ptr<const char> smask =  luaL_checkstring(L, arg+2);
     luaL_checktype(L, arg+1, LUA_TFUNCTION);
     count = (int)luaL_optinteger(L, arg + 3, 0);
-    func = hookf; mask = makemask(smask, count);
+    func = hookf; mask = makemask(((const char *)smask), count);
   }
   if (lua_rawgetp(L, LUA_REGISTRYINDEX, &HOOKKEY) == LUA_TNIL) {
     lua_createtable(L, 0, 2);  /* create a hook table */
     lua_pushvalue(L, -1);
     lua_rawsetp(L, LUA_REGISTRYINDEX, &HOOKKEY);  /* set it in position */
-    lua_pushstring(L, "k");
+    lua_pushstring(L, ((const char *)"k"));
     lua_setfield(L, -2, "__mode");  /** hooktable.__mode = "k" */
     lua_pushvalue(L, -1);
     lua_setmetatable(L, -2);  /* setmetatable(hooktable) = hooktable */
@@ -371,12 +371,12 @@ static int db_sethook (lua_State *L) {
   lua_pushthread(L1); lua_xmove(L1, L, 1);  /* key (thread) */
   lua_pushvalue(L, arg + 1);  /* value (hook function) */
   lua_rawset(L, -3);  /* hooktable[L1] = new Lua hook */
-  lua_sethook(L1, func, mask, count);
+  lua_sethook(L1, ((lua_Hook )func), mask, count);
   return 0;
 }
 
 
-static int db_gethook (lua_State *L) {
+static int db_gethook(lua_State *L) {
   int arg;
   lua_State *L1 = getthread(L, &arg);
   char buff[5];
@@ -399,12 +399,12 @@ static int db_gethook (lua_State *L) {
 }
 
 
-static int db_debug (lua_State *L) {
+static int db_debug(lua_State *L) {
   for (;;) {
     char buffer[250];
     lua_writestringerror("%s", "lua_debug> ");
     if (fgets(buffer, sizeof(buffer), stdin) == 0 ||
-        strcmp(buffer, "cont\n") == 0)
+        strcmp(buffer, ((const char *)"cont\n")) == 0)
       return 0;
     if (luaL_loadbuffer(L, buffer, strlen(buffer), "=(debug command)") ||
         lua_pcall(L, 0, 0, 0))
@@ -414,10 +414,10 @@ static int db_debug (lua_State *L) {
 }
 
 
-static int db_traceback (lua_State *L) {
+static int db_traceback(lua_State *L) {
   int arg;
   lua_State *L1 = getthread(L, &arg);
-  const char *msg = lua_tostring(L, arg + 1);
+  _Ptr<const char> msg =  lua_tostring(L, arg + 1);
   if (msg == NULL && !lua_isnoneornil(L, arg + 1))  /* non-string 'msg'? */
     lua_pushvalue(L, arg + 1);  /* return it untouched */
   else {

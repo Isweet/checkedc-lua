@@ -29,7 +29,7 @@
 
 
 typedef struct luaL_Reg {
-  const char *name;
+  _Ptr<const char> name;
   lua_CFunction func;
 } luaL_Reg;
 
@@ -150,7 +150,7 @@ typedef struct luaL_Buffer {
   size_t size;  /* buffer size */
   size_t n;  /* number of characters in buffer */
   lua_State *L;
-  char initb[LUAL_BUFFERSIZE];  /* initial buffer */
+  _Ptr<char> initb;  /* initial buffer */
 } luaL_Buffer;
 
 
@@ -192,7 +192,7 @@ LUALIB_API char *(luaL_buffinitsize) (lua_State *L, luaL_Buffer *B, size_t sz);
 
 typedef struct luaL_Stream {
   FILE *f;  /* stream (NULL for incompletely created streams) */
-  lua_CFunction closef;  /* to close stream (NULL for closed streams) */
+  _Ptr<int (_Ptr<lua_State> )> closef;  /* to close stream (NULL for closed streams) */
 } luaL_Stream;
 
 /* }====================================================== */

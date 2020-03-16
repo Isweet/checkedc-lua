@@ -99,7 +99,7 @@ typedef struct CallInfo {
       const Instruction *savedpc;
     } l;
     struct {  /* only for C functions */
-      lua_KFunction k;  /* continuation in case of yields */
+      _Ptr<int (lua_State* , int , lua_KContext )> k;  /* continuation in case of yields */
       ptrdiff_t old_errfunc;
       lua_KContext ctx;  /* context info. in case of yields */
     } c;
@@ -164,7 +164,7 @@ typedef struct global_State {
   int gcstepmul;  /* GC 'granularity' */
   lua_CFunction panic;  /* to be called in unprotected errors */
   struct lua_State *mainthread;
-  const lua_Number *version;  /* pointer to version number */
+  _Ptr<const lua_Number> version;  /* pointer to version number */
   TString *memerrmsg;  /* memory-error message */
   TString *tmname[TM_N];  /* array with tag-method names */
   struct Table *mt[LUA_NUMTAGS];  /* metatables for basic types */
@@ -180,7 +180,7 @@ struct lua_State {
   unsigned short nci;  /* number of items in 'ci' list */
   lu_byte status;
   StkId top;  /* first free slot in the stack */
-  global_State *l_G;
+  _Ptr<global_State> l_G;
   CallInfo *ci;  /* call info for current function */
   const Instruction *oldpc;  /* last pc traced */
   StkId stack_last;  /* last free slot in the stack */
@@ -188,7 +188,7 @@ struct lua_State {
   UpVal *openupval;  /* list of open upvalues in this stack */
   GCObject *gclist;
   struct lua_State *twups;  /* list of threads with open upvalues */
-  struct lua_longjmp *errorJmp;  /* current error recover point */
+  _Ptr<struct lua_longjmp> errorJmp;  /* current error recover point */
   CallInfo base_ci;  /* CallInfo for first level (C calling Lua) */
   volatile lua_Hook hook;
   ptrdiff_t errfunc;  /* current error handling function (stack index) */

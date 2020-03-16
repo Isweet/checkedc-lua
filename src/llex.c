@@ -51,11 +51,11 @@ static const char *const luaX_tokens [] = {
 #define save_and_next(ls) (save(ls, ls->current), next(ls))
 
 
-static l_noret lexerror (LexState *ls, const char *msg, int token);
+static void lexerror(_Ptr<LexState> ls, _Ptr<const char> msg, int token);
 
 
-static void save (LexState *ls, int c) {
-  Mbuffer *b = ls->buff;
+static void save(_Ptr<LexState> ls, int c) {
+  _Ptr<Mbuffer> b =  ls->buff;
   if (luaZ_bufflen(b) + 1 > luaZ_sizebuffer(b)) {
     size_t newsize;
     if (luaZ_sizebuffer(b) >= MAX_SIZE/2)
@@ -67,7 +67,7 @@ static void save (LexState *ls, int c) {
 }
 
 
-void luaX_init (lua_State *L) {
+void luaX_init(lua_State *L) {
   int i;
   TString *e = luaS_newliteral(L, LUA_ENV);  /* create env name */
   luaC_fix(L, obj2gco(e));  /* never collect this name */
@@ -79,7 +79,7 @@ void luaX_init (lua_State *L) {
 }
 
 
-const char *luaX_token2str (LexState *ls, int token) {
+const char * luaX_token2str(_Ptr<LexState> ls, int token) {
   if (token < FIRST_RESERVED) {  /* single-byte symbols? */
     lua_assert(token == cast_uchar(token));
     return luaO_pushfstring(ls->L, "'%c'", token);
@@ -94,7 +94,7 @@ const char *luaX_token2str (LexState *ls, int token) {
 }
 
 
-static const char *txtToken (LexState *ls, int token) {
+static const char * txtToken(_Ptr<LexState> ls, int token) {
   switch (token) {
     case TK_NAME: case TK_STRING:
     case TK_FLT: case TK_INT:
@@ -106,7 +106,7 @@ static const char *txtToken (LexState *ls, int token) {
 }
 
 
-static l_noret lexerror (LexState *ls, const char *msg, int token) {
+static void lexerror(_Ptr<LexState> ls, _Ptr<const char> msg, int token) {
   msg = luaG_addinfo(ls->L, msg, ls->source, ls->linenumber);
   if (token)
     luaO_pushfstring(ls->L, "%s near %s", msg, txtToken(ls, token));
@@ -124,7 +124,7 @@ l_noret luaX_syntaxerror (LexState *ls, const char *msg) {
 ** it will not be collected until the end of the compilation
 ** (by that time it should be anchored somewhere)
 */
-TString *luaX_newstring (LexState *ls, const char *str, size_t l) {
+TString * luaX_newstring(_Ptr<LexState> ls, const char *str, size_t l) {
   lua_State *L = ls->L;
   TValue *o;  /* entry for 'str' */
   TString *ts = luaS_newlstr(L, str, l);  /* create new string */
@@ -148,7 +148,7 @@ TString *luaX_newstring (LexState *ls, const char *str, size_t l) {
 ** increment line number and skips newline sequence (any of
 ** \n, \r, \n\r, or \r\n)
 */
-static void inclinenumber (LexState *ls) {
+static void inclinenumber(_Ptr<LexState> ls) {
   int old = ls->current;
   lua_assert(currIsNewline(ls));
   next(ls);  /* skip '\n' or '\r' */
@@ -159,8 +159,7 @@ static void inclinenumber (LexState *ls) {
 }
 
 
-void luaX_setinput (lua_State *L, LexState *ls, ZIO *z, TString *source,
-                    int firstchar) {
+void luaX_setinput(lua_State *L, _Ptr<LexState> ls, _Ptr<ZIO> z, TString *source, int firstchar) {
   ls->t.token = 0;
   ls->L = L;
   ls->current = firstchar;
@@ -183,7 +182,7 @@ void luaX_setinput (lua_State *L, LexState *ls, ZIO *z, TString *source,
 */
 
 
-static int check_next1 (LexState *ls, int c) {
+static int check_next1(_Ptr<LexState> ls, int c) {
   if (ls->current == c) {
     next(ls);
     return 1;
@@ -196,7 +195,7 @@ static int check_next1 (LexState *ls, int c) {
 ** Check whether current char is in set 'set' (with two chars) and
 ** saves it
 */
-static int check_next2 (LexState *ls, const char *set) {
+static int check_next2(_Ptr<LexState> ls, const char *set) {
   lua_assert(set[2] == '\0');
   if (ls->current == set[0] || ls->current == set[1]) {
     save_and_next(ls);
@@ -211,17 +210,17 @@ static int check_next2 (LexState *ls, const char *set) {
 ** this function is quite liberal in what it accepts, as 'luaO_str2num'
 ** will reject ill-formed numerals.
 */
-static int read_numeral (LexState *ls, SemInfo *seminfo) {
+static int read_numeral(_Ptr<LexState> ls, _Ptr<SemInfo> seminfo) {
   TValue obj;
   const char *expo = "Ee";
   int first = ls->current;
   lua_assert(lisdigit(ls->current));
   save_and_next(ls);
-  if (first == '0' && check_next2(ls, "xX"))  /* hexadecimal? */
+  if (first == '0' && check_next2(ls, ((const char *)"xX")))  /* hexadecimal? */
     expo = "Pp";
   for (;;) {
     if (check_next2(ls, expo))  /* exponent part? */
-      check_next2(ls, "-+");  /* optional exponent sign */
+      check_next2(ls, ((const char *)"-+"));  /* optional exponent sign */
     if (lisxdigit(ls->current))
       save_and_next(ls);
     else if (ls->current == '.')
@@ -248,7 +247,7 @@ static int read_numeral (LexState *ls, SemInfo *seminfo) {
 ** its number of '='s; otherwise, return a negative number (-1 iff there
 ** are no '='s after initial bracket)
 */
-static int skip_sep (LexState *ls) {
+static int skip_sep(_Ptr<LexState> ls) {
   int count = 0;
   int s = ls->current;
   lua_assert(s == '[' || s == ']');
@@ -261,7 +260,7 @@ static int skip_sep (LexState *ls) {
 }
 
 
-static void read_long_string (LexState *ls, SemInfo *seminfo, int sep) {
+static void read_long_string(_Ptr<LexState> ls, SemInfo *seminfo, int sep) {
   int line = ls->linenumber;  /* initial line (for error message) */
   save_and_next(ls);  /* skip 2nd '[' */
   if (currIsNewline(ls))  /* string starts with a newline? */
@@ -300,7 +299,7 @@ static void read_long_string (LexState *ls, SemInfo *seminfo, int sep) {
 }
 
 
-static void esccheck (LexState *ls, int c, const char *msg) {
+static void esccheck(_Ptr<LexState> ls, int c, const char *msg) {
   if (!c) {
     if (ls->current != EOZ)
       save_and_next(ls);  /* add current to buffer for error message */
@@ -309,14 +308,14 @@ static void esccheck (LexState *ls, int c, const char *msg) {
 }
 
 
-static int gethexa (LexState *ls) {
+static int gethexa(_Ptr<LexState> ls) {
   save_and_next(ls);
-  esccheck (ls, lisxdigit(ls->current), "hexadecimal digit expected");
+  esccheck (ls, lisxdigit(ls->current), ((const char *)"hexadecimal digit expected"));
   return luaO_hexavalue(ls->current);
 }
 
 
-static int readhexaesc (LexState *ls) {
+static int readhexaesc(_Ptr<LexState> ls) {
   int r = gethexa(ls);
   r = (r << 4) + gethexa(ls);
   luaZ_buffremove(ls->buff, 2);  /* remove saved chars from buffer */
@@ -324,25 +323,25 @@ static int readhexaesc (LexState *ls) {
 }
 
 
-static unsigned long readutf8esc (LexState *ls) {
+static unsigned long readutf8esc(_Ptr<LexState> ls) {
   unsigned long r;
   int i = 4;  /* chars to be removed: '\', 'u', '{', and first digit */
   save_and_next(ls);  /* skip 'u' */
-  esccheck(ls, ls->current == '{', "missing '{'");
+  esccheck(ls, ls->current == '{', ((const char *)"missing '{'"));
   r = gethexa(ls);  /* must have at least one digit */
   while ((save_and_next(ls), lisxdigit(ls->current))) {
     i++;
     r = (r << 4) + luaO_hexavalue(ls->current);
-    esccheck(ls, r <= 0x10FFFF, "UTF-8 value too large");
+    esccheck(ls, r <= 0x10FFFF, ((const char *)"UTF-8 value too large"));
   }
-  esccheck(ls, ls->current == '}', "missing '}'");
+  esccheck(ls, ls->current == '}', ((const char *)"missing '}'"));
   next(ls);  /* skip '}' */
   luaZ_buffremove(ls->buff, i);  /* remove saved chars from buffer */
   return r;
 }
 
 
-static void utf8esc (LexState *ls) {
+static void utf8esc(_Ptr<LexState> ls) {
   char buff[UTF8BUFFSZ];
   int n = luaO_utf8esc(buff, readutf8esc(ls));
   for (; n > 0; n--)  /* add 'buff' to string */
@@ -350,20 +349,20 @@ static void utf8esc (LexState *ls) {
 }
 
 
-static int readdecesc (LexState *ls) {
+static int readdecesc(_Ptr<LexState> ls) {
   int i;
   int r = 0;  /* result accumulator */
   for (i = 0; i < 3 && lisdigit(ls->current); i++) {  /* read up to 3 digits */
     r = 10*r + ls->current - '0';
     save_and_next(ls);
   }
-  esccheck(ls, r <= UCHAR_MAX, "decimal escape too large");
+  esccheck(ls, r <= UCHAR_MAX, ((const char *)"decimal escape too large"));
   luaZ_buffremove(ls->buff, i);  /* remove read digits from buffer */
   return r;
 }
 
 
-static void read_string (LexState *ls, int del, SemInfo *seminfo) {
+static void read_string(_Ptr<LexState> ls, int del, _Ptr<SemInfo> seminfo) {
   save_and_next(ls);  /* keep delimiter (for error messages) */
   while (ls->current != del) {
     switch (ls->current) {
@@ -402,7 +401,7 @@ static void read_string (LexState *ls, int del, SemInfo *seminfo) {
             goto no_save;
           }
           default: {
-            esccheck(ls, lisdigit(ls->current), "invalid escape sequence");
+            esccheck(ls, lisdigit(ls->current), ((const char *)"invalid escape sequence"));
             c = readdecesc(ls);  /* digital escape '\ddd' */
             goto only_save;
           }
@@ -426,7 +425,7 @@ static void read_string (LexState *ls, int del, SemInfo *seminfo) {
 }
 
 
-static int llex (LexState *ls, SemInfo *seminfo) {
+static int llex(_Ptr<LexState> ls, SemInfo *seminfo) {
   luaZ_resetbuffer(ls->buff);
   for (;;) {
     switch (ls->current) {
@@ -546,7 +545,7 @@ static int llex (LexState *ls, SemInfo *seminfo) {
 }
 
 
-void luaX_next (LexState *ls) {
+void luaX_next(_Ptr<LexState> ls) {
   ls->lastline = ls->linenumber;
   if (ls->lookahead.token != TK_EOS) {  /* is there a look-ahead token? */
     ls->t = ls->lookahead;  /* use this one */
@@ -557,7 +556,7 @@ void luaX_next (LexState *ls) {
 }
 
 
-int luaX_lookahead (LexState *ls) {
+int luaX_lookahead(_Ptr<LexState> ls) {
   lua_assert(ls->lookahead.token == TK_EOS);
   ls->lookahead.token = llex(ls, &ls->lookahead.seminfo);
   return ls->lookahead.token;
