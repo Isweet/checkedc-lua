@@ -141,7 +141,7 @@ LUA_API lua_CFunction lua_atpanic (lua_State *L, lua_CFunction panicf) {
 }
 
 
-LUA_API const lua_Number *lua_version (lua_State *L) {
+LUA_API _Ptr<const lua_Number> lua_version (lua_State *L) {
   static const lua_Number version = LUA_VERSION_NUM;
   if (L == NULL) return &version;
   else return G(L)->version;
@@ -504,10 +504,9 @@ LUA_API const char *lua_pushstring (lua_State *L, const char *s) {
   return s;
 }
 
-
 LUA_API const char *lua_pushvfstring (lua_State *L, const char *fmt,
                                       va_list argp) {
-  _Ptr<const char> ret = NULL;
+  const char *ret = NULL;
   lua_lock(L);
   ret = luaO_pushvfstring(L, ((const char *)fmt), argp);
   luaC_checkGC(L);
@@ -518,7 +517,7 @@ LUA_API const char *lua_pushvfstring (lua_State *L, const char *fmt,
 
 LUA_API const char *lua_pushfstring (lua_State *L, const char *fmt, ...) {
   const char *ret;
-  _Ptr<struct __va_list_tag> argp;
+  va_list argp;
   lua_lock(L);
   va_start(argp, fmt);
   ret = luaO_pushvfstring(L, ((const char *)fmt), argp);
@@ -586,7 +585,7 @@ LUA_API int lua_pushthread (lua_State *L) {
 
 
 static int auxgetstr(lua_State *L, const TValue *t, const char *k) {
-  _Ptr<const TValue> slot = NULL;
+  const TValue * slot = NULL;
   TString *str = luaS_new(L, k);
   if (luaV_fastget(L, t, str, slot, luaH_getstr)) {
     setobj2s(L, L->top, slot);
@@ -595,7 +594,7 @@ static int auxgetstr(lua_State *L, const TValue *t, const char *k) {
   else {
     setsvalue2s(L, L->top, str);
     api_incr_top(L);
-    luaV_finishget(L, t, L->top - 1, L->top - 1, slot);
+    luaV_finishget(L, t, L->top - 1, L->top - 1, (const TValue *) slot);
   }
   lua_unlock(L);
   return ttnov(L->top - 1);
